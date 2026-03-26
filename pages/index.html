@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StatCalc</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0a0f;
+    --surface:  #111118;
+    --panel:    #16161f;
+    --border:   #2a2a3a;
+    --accent:   #7c6aff;
+    --accent2:  #ff6b6b;
+    --accent3:  #43e8b0;
+    --text:     #e8e8f0;
+    --muted:    #666680;
+    --mono:     'DM Mono', monospace;
+    --display:  'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid background ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1300px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 48px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: var(--display); font-size: 2rem; font-weight: 800; letter-spacing: -1px; }
+  .logo span { color: var(--accent); }
+  .tagline { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  /* ── Input section ── */
+  .input-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .input-card .full { grid-column: 1 / -1; }
+
+  label {
+    display: block;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  label span { color: var(--accent); margin-left: 4px; }
+
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,255,0.15);
+  }
+
+  .predict-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .run-btn {
+    grid-column: 1 / -1;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 32px;
+    font-family: var(--display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(124,106,255,0.3);
+  }
+  .run-btn:hover { background: #9180ff; box-shadow: 0 6px 28px rgba(124,106,255,0.45); }
+  .run-btn:active { transform: translateY(1px); }
+  .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .error-msg {
+    grid-column: 1 / -1;
+    background: rgba(255,107,107,0.1);
+    border: 1px solid var(--accent2);
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: var(--accent2);
+    font-size: 0.8rem;
+    display: none;
+  }
+
+  /* ── Results ── */
+  #results { display: none; animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  .section-label {
+    font-family: var(--display);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── Stats grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-card .sk { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-card .sv { font-size: 1.1rem; font-weight: 500; color: var(--text); }
+  .stat-card .sv.accent  { color: var(--accent); }
+  .stat-card .sv.accent2 { color: var(--accent2); }
+  .stat-card .sv.accent3 { color: var(--accent3); }
+
+  /* ── Chart ── */
+  .chart-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .chart-wrap canvas { max-height: 380px; }
+
+  /* ── Correlation block ── */
+  .corr-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .corr-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .corr-card .ck { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .corr-card .cv { font-family: var(--display); font-size: 1.6rem; font-weight: 700; }
+  .corr-card .cp { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── Regression ── */
+  .reg-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 32px;
+  }
+  .reg-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-size: 0.9rem;
+  }
+  .reg-card .rk { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .reg-card .rv { font-family: var(--display); font-size: 1rem; font-weight: 600; color: var(--accent3); }
+
+  /* ── Prediction banner ── */
+  .pred-banner {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 32px;
+  }
+  .pred-card {
+    background: linear-gradient(135deg, rgba(124,106,255,0.12), rgba(67,232,176,0.08));
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+  .pred-card .pk { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .pred-card .pv { font-family: var(--display); font-size: 1.4rem; font-weight: 700; color: var(--accent3); }
+  .pred-card .pe { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+  /* ── Data table ── */
+  .table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  thead tr { background: var(--surface); }
+  thead th {
+    padding: 12px 14px;
+    text-align: right;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: center; }
+  tbody tr { border-bottom: 1px solid rgba(42,42,58,0.6); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(124,106,255,0.06); }
+  tbody td { padding: 10px 14px; text-align: right; }
+  tbody td:first-child { text-align: center; color: var(--muted); }
+  tfoot tr { background: var(--surface); border-top: 1px solid var(--border); }
+  tfoot td { padding: 12px 14px; text-align: right; font-weight: 500; color: var(--accent); }
+  tfoot td:first-child { text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div>
+      <div class="logo">Stat<span>Calc</span></div>
+      <div class="tagline">Correlation, Regression &amp; Statistical Analyzer</div>
+    </div>
+  </header>
+
+  <!-- Input -->
+  <div class="input-card">
+    <div>
+      <label>X values <span>*</span></label>
+      <input type="text" id="inp-x" placeholder="Enter x values separated by commas or spaces">
+    </div>
+    <div>
+      <label>Y values <span>*</span></label>
+      <input type="text" id="inp-y" placeholder="Enter y values separated by commas or spaces">
+    </div>
+    <div class="full">
+      <label>Predict (optional)</label>
+      <div class="predict-row">
+        <div>
+          <input type="number" id="inp-px" placeholder="Predict y given x = ?">
+        </div>
+        <div>
+          <input type="number" id="inp-py" placeholder="Predict x given y = ?">
+        </div>
+      </div>
+    </div>
+    <div class="error-msg full" id="err-msg"></div>
+    <button class="run-btn" onclick="runAnalysis()">Run Analysis</button>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Descriptive stats -->
+    <div class="section-label">Descriptive Statistics</div>
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <!-- Chart -->
+    <div class="section-label">Scatter Plot &amp; Regression Line</div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+
+    <!-- Correlation -->
+    <div class="section-label">Correlation Coefficients</div>
+    <div class="corr-grid" id="corr-grid"></div>
+
+    <!-- Regression equations -->
+    <div class="section-label">Regression Equations</div>
+    <div class="reg-row" id="reg-row"></div>
+
+    <!-- Predictions -->
+    <div class="section-label" id="pred-label" style="display:none">Predictions</div>
+    <div class="pred-banner" id="pred-banner"></div>
+
+    <!-- Data table -->
+    <div class="section-label">Computation Table</div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>x</th><th>y</th>
+              <th>Cf x</th><th>Cf y</th>
+              <th>x²</th><th>y²</th><th>x·y</th>
+              <th>Rank x</th><th>Rank y</th>
+              <th>d</th><th>d²</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+          <tfoot id="tbl-foot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+</div><!-- /wrapper -->
+
+<script>
+let chartInstance = null;
+
+function parseList(str) {
+  return str.split(/[\s,]+/).filter(Boolean).map(Number);
+}
+
+async function runAnalysis() {
+  const btn = document.querySelector('.run-btn');
+  const errEl = document.getElementById('err-msg');
+  errEl.style.display = 'none';
+
+  const x  = parseList(document.getElementById('inp-x').value);
+  const y  = parseList(document.getElementById('inp-y').value);
+  const px = document.getElementById('inp-px').value.trim();
+  const py = document.getElementById('inp-py').value.trim();
+
+  if (!x.length && !y.length) { showErr('Please enter x and y values.'); return; }
+  if (!x.length) { showErr('Please enter x values.'); return; }
+  if (!y.length) { showErr('Please enter y values.'); return; }
+  if (x.length !== y.length)  { showErr('x and y must have the same number of values.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Computing…';
+
+  try {
+    const res  = await fetch('/compute', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ x, y, predict_x: px || null, predict_y: py || null })
+    });
+    const data = await res.json();
+    if (data.error) { showErr(data.error); return; }
+    render(data);
+  } catch(e) { showErr('Server error: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Run Analysis'; }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('err-msg');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function fmt(v) { return (typeof v === 'number') ? v : v; }
+
+function render(d) {
+  const res = document.getElementById('results');
+  res.style.display = 'block';
+  res.style.animation = 'none';
+  void res.offsetWidth;
+  res.style.animation = '';
+
+  // ── Stats ──
+  const s = d.stats;
+  const statsGrid = document.getElementById('stats-grid');
+  statsGrid.innerHTML = [
+    ['Mean x',   s.mean_x,   'accent'],
+    ['Mean y',   s.mean_y,   'accent'],
+    ['Median x', s.median_x, ''],
+    ['Median y', s.median_y, ''],
+    ['Mode x',   s.mode_x.join(', '), ''],
+    ['Mode y',   s.mode_y.join(', '), ''],
+    ['Q1 x',     s.Q1_x,     'accent3'],
+    ['Q3 x',     s.Q3_x,     'accent3'],
+    ['Q1 y',     s.Q1_y,     'accent2'],
+    ['Q3 y',     s.Q3_y,     'accent2'],
+  ].map(([k,v,cls]) => `
+    <div class="stat-card">
+      <div class="sk">${k}</div>
+      <div class="sv ${cls}">${fmt(v)}</div>
+    </div>`).join('');
+
+  // ── Chart ──
+  const c = d.chart;
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('chart').getContext('2d');
+  const datasets = [
+    {
+      label: 'Regression line',
+      data: c.line,
+      type: 'line',
+      borderColor: '#ff6b6b',
+      borderWidth: 2,
+      pointRadius: 0,
+      fill: false,
+      tension: 0,
+      order: 1,
+    },
+    {
+      label: 'Data points',
+      data: c.scatter,
+      type: 'scatter',
+      backgroundColor: 'rgba(124,106,255,0.85)',
+      borderColor: '#fff',
+      borderWidth: 1,
+      pointRadius: 7,
+      pointHoverRadius: 9,
+      order: 2,
+    },
+  ];
+  if (c.pred_point) {
+    datasets.push({
+      label: 'Prediction',
+      data: [c.pred_point],
+      type: 'scatter',
+      backgroundColor: '#43e8b0',
+      borderColor: '#fff',
+      borderWidth: 2,
+      pointRadius: 10,
+      pointStyle: 'star',
+      order: 0,
+    });
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      animation: { duration: 600 },
+      plugins: {
+        legend: {
+          labels: { color: '#888', font: { family: 'DM Mono' }, boxWidth: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#16161f',
+          borderColor: '#2a2a3a',
+          borderWidth: 1,
+          titleColor: '#e8e8f0',
+          bodyColor: '#999',
+          callbacks: {
+            label: ctx => `(${ctx.parsed.x}, ${ctx.parsed.y})`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42,42,58,0.8)' },
+          ticks: { color: '#555', font: { family: 'DM Mono', size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(42,42,58,0.8)' },
+          ticks: { color: '#555', font: { family: 'DM Mono', size: 11 } }
+        }
+      }
+    }
+  });
+
+  // ── Correlation ──
+  const cr = d.correlation;
+  document.getElementById('corr-grid').innerHTML = [
+    // ['Pearson r (manual)',  cr.r_manual,   '',        null],
+    ['Pearson r (scipy)',   cr.r_pearson,  'accent',  `p = ${cr.p_pearson}`],
+    ['Spearman ρ (scipy)',  cr.r_spearman, 'accent2', `p = ${cr.p_spearman}`],
+    // ['Spearman ρ (manual)', cr.r_s_manual, '',        `Σd² = ${cr.sum_d2}`],
+  ].map(([k,v,cls,sub]) => `
+    <div class="corr-card">
+      <div class="ck">${k}</div>
+      <div class="cv ${cls}">${v}</div>
+      ${sub ? `<div class="cp">${sub}</div>` : ''}
+    </div>`).join('');
+
+  // ── Regression ──
+  const rg = d.regression;
+  document.getElementById('reg-row').innerHTML = `
+    <div class="reg-card">
+      <div class="rk">y on x</div>
+      <div class="rv">y = ${rg.a_yx} + ${rg.b_yx}x</div>
+    </div>
+    <div class="reg-card">
+      <div class="rk">x on y</div>
+      <div class="rv">x = ${rg.a_xy} + ${rg.b_xy}y</div>
+    </div>`;
+
+  // ── Predictions ──
+  const pr = d.prediction;
+  const predBanner = document.getElementById('pred-banner');
+  const predLabel  = document.getElementById('pred-label');
+  predBanner.innerHTML = '';
+  if (pr.pred_y !== null || pr.pred_x !== null) {
+    predLabel.style.display = '';
+    if (pr.pred_y !== null) {
+      predBanner.innerHTML += `
+        <div class="pred-card">
+          <div class="pk">Given x = ${pr.predict_x}</div>
+          <div class="pv">y = ${pr.pred_y}</div>
+          <div class="pe">Using y-on-x regression</div>
+        </div>`;
+    }
+    if (pr.pred_x !== null) {
+      predBanner.innerHTML += `
+        <div class="pred-card">
+          <div class="pk">Given y = ${pr.predict_y}</div>
+          <div class="pv">x = ${pr.pred_x}</div>
+          <div class="pe">Using x-on-y regression</div>
+        </div>`;
+    }
+  } else {
+    predLabel.style.display = 'none';
+  }
+
+  // ── Table ──
+  const tb = document.getElementById('tbl-body');
+  tb.innerHTML = d.rows.map(r => `
+    <tr>
+      <td>${r.i}</td>
+      <td>${r.x}</td><td>${r.y}</td>
+      <td>${r.cf_x}</td><td>${r.cf_y}</td>
+      <td>${r.x2}</td><td>${r.y2}</td><td>${r.xy}</td>
+      <td>${r.rx}</td><td>${r.ry}</td>
+      <td>${r.d}</td><td>${r.d2}</td>
+    </tr>`).join('');
+
+  const sm = d.sums;
+  document.getElementById('tbl-foot').innerHTML = `
+    <tr>
+      <td>Σ</td>
+      <td>${sm.x}</td><td>${sm.y}</td>
+      <td>—</td><td>—</td>
+      <td>${sm.x2}</td><td>${sm.y2}</td><td>${sm.xy}</td>
+      <td>—</td><td>—</td><td>—</td><td>${sm.d2}</td>
+    </tr>`;
+
+  res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+</script>
+</body>
+</html>
