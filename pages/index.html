@@ -9,15 +9,15 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:       #0a0a0f;
-    --surface:  #111118;
-    --panel:    #16161f;
-    --border:   #2a2a3a;
-    --accent:   #7c6aff;
-    --accent2:  #ff6b6b;
-    --accent3:  #43e8b0;
-    --text:     #e8e8f0;
-    --muted:    #666680;
+    --bg:#f4f6f8;
+    --surface:#ffffff;
+    --panel:#ffffff;
+    --border:#d8dee6;
+    --accent:#2563eb;
+    --accent2:#f97316;
+    --accent3:#0f766e;
+    --text:#1f2937;
+    --muted:#6b7280;
     --mono:     'DM Mono', monospace;
     --display:  'Syne', sans-serif;
   }
@@ -27,24 +27,13 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--mono);
+    font-family:'Inter',sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
   /* ── Grid background ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.3;
-    pointer-events: none;
-    z-index: 0;
-  }
-
+  
   .wrapper { position: relative; z-index: 1; max-width: 1300px; margin: 0 auto; padding: 40px 24px 80px; }
 
   /* ── Header ── */
@@ -60,6 +49,7 @@
   /* ── Input section ── */
   .input-card {
     background: var(--panel);
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 32px;
@@ -87,7 +77,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     color: var(--text);
-    font-family: var(--mono);
+    font-family:'Inter',sans-serif;
     font-size: 0.875rem;
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
@@ -113,9 +103,9 @@
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-    box-shadow: 0 4px 20px rgba(124,106,255,0.3);
+    
   }
-  .run-btn:hover { background: #9180ff; box-shadow: 0 6px 28px rgba(124,106,255,0.45); }
+  .run-btn:hover{background:#1d4ed8;transform:translateY(-2px);}
   .run-btn:active { transform: translateY(1px); }
   .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -154,6 +144,7 @@
   }
   .stat-card {
     background: var(--panel);
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px;
@@ -169,6 +160,7 @@
   /* ── Chart ── */
   .chart-wrap {
     background: var(--panel);
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 28px;
@@ -186,6 +178,7 @@
   }
   .corr-card {
     background: var(--panel);
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 18px 20px;
@@ -201,6 +194,7 @@
   }
   .reg-card {
     background: var(--panel);
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 18px 20px;
@@ -227,6 +221,7 @@
   /* ── Data table ── */
   .table-wrap {
     background: var(--panel);
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
@@ -261,7 +256,7 @@
   <header>
     <div>
       <div class="logo">Stat<span>Calc</span></div>
-      <div class="tagline">Correlation, Regression &amp; Statistical Analyzer</div>
+      <div class="tagline">Statistical Analysis Tool</div>
     </div>
   </header>
 
@@ -418,7 +413,7 @@ function render(d) {
       label: 'Regression line',
       data: c.line,
       type: 'line',
-      borderColor: '#ff6b6b',
+      borderColor: '#f97316',
       borderWidth: 2,
       pointRadius: 0,
       fill: false,
@@ -429,7 +424,7 @@ function render(d) {
       label: 'Data points',
       data: c.scatter,
       type: 'scatter',
-      backgroundColor: 'rgba(124,106,255,0.85)',
+      backgroundColor: '#3b82f6',
       borderColor: '#fff',
       borderWidth: 1,
       pointRadius: 7,
